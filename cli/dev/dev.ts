@@ -1,9 +1,11 @@
-import { AdapterRequestContext, compose, MagicString } from "../deps.ts";
+import { AdapterRequestContext, compose } from "../deps.ts";
+import { createAppHandler } from "./middleware/app-handler.ts";
 import { createStaticServer } from "./middleware/static.ts";
 import { createTransformMiddleware } from "./middleware/transform.ts";
 import { PluginContainer } from "./plugin-container.ts";
 import { esbuildTransform } from "./plugins/esbuild.ts";
 import { fileLoader } from "./plugins/file-loader.ts";
+import { createModuleToFunctionBodyTransform } from "./plugins/module-to-function-body.ts";
 
 startDevServer();
 
@@ -14,46 +16,25 @@ interface DevServerConfig {
 }
 
 async function startDevServer(config: DevServerConfig = {}) {
-  const {
-    root = Deno.cwd(),
-    port = 5173,
-  } = config;
+  const { root = Deno.cwd(), port = 5173 } = config;
 
-  const container = new PluginContainer([
-    fileLoader({ root }),
-    esbuildTransform(),
-    {
-      name: "haydi:meh",
-      transform(ctx) {
-        if (ctx.type === "application/javascript") {
-          const ms = new MagicString(ctx.code, { filename: ctx.url.pathname });
-
-          const toBeMoved = `console.log("After");\n`;
-          const start = ctx.code.indexOf(toBeMoved);
-          const end = start + toBeMoved.length;
-          ms.move(start, end, 0);
-
-          const map = ms.generateMap();
-
-          map.sources = [ctx.url.pathname];
-          map.sourcesContent = [ctx.code];
-
-          return {
-            code: ms.toString(),
-            type: "application/javascript",
-            map,
-          };
-        }
-      },
-    },
-  ], "serve");
+  const container = new PluginContainer(
+    [
+      fileLoader({ root }),
+      esbuildTransform(),
+      createModuleToFunctionBodyTransform(),
+    ],
+    "serve"
+  );
 
   const hattipHandler = compose([
     createStaticServer({ root }),
     createTransformMiddleware({ container }),
+    createAppHandler({ root, container }),
   ]);
 
   const listener = Deno.listen({ port });
+  console.log(`Listening on http://localhost:${port}`);
 
   for await (const conn of listener) {
     handleConnection(conn);

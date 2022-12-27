@@ -2,7 +2,6 @@ export { serveFile } from "https://deno.land/std@0.170.0/http/file_server.ts";
 export * as path from "https://deno.land/std@0.170.0/path/mod.ts";
 
 export * as esbuild from "https://deno.land/x/esbuild@v0.16.10/mod.js";
-export { default as MagicString } from "https://deno.land/x/magic_string@v1.0.0/mod.ts";
 
 export { default as remapping } from "https://esm.sh/@ampproject/remapping@2.2.0";
 export type {
@@ -14,3 +13,9 @@ export {
   type RequestContext,
   type RequestHandler,
 } from "https://esm.sh/@hattip/compose@0.0.24";
+import * as acorn from "https://esm.sh/acorn@8.8.1";
+export { acorn };
+export * as estreeWalker from "https://esm.sh/estree-walker@3.0.1";
+export * as estree from "https://esm.sh/v100/@types/estree@1.0.0/index.d.ts";
+export { default as MagicString } from "https://esm.sh/magic-string@0.27.0";
+export { extract_names as extractNames } from "https://esm.sh/periscopic@3.0.4";

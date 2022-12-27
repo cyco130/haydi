@@ -9,7 +9,7 @@ export function esbuildTransform(): HaydiPlugin {
       if (ctx.type === "application/typescript") {
         const result = await esbuild.transform(ctx.code, {
           loader: "ts",
-          target: "es2020",
+          target: "esnext",
           sourcefile: ctx.url.pathname,
           sourcemap: true,
         });
