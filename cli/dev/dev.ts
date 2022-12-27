@@ -10,58 +10,58 @@ import { createModuleToFunctionBodyTransform } from "./plugins/module-to-functio
 startDevServer();
 
 interface DevServerConfig {
-  root?: string;
-  port?: number;
-  sourceMap?: boolean;
+	root?: string;
+	port?: number;
+	sourceMap?: boolean;
 }
 
 async function startDevServer(config: DevServerConfig = {}) {
-  const { root = Deno.cwd(), port = 5173 } = config;
+	const { root = Deno.cwd(), port = 5173 } = config;
 
-  const container = new PluginContainer(
-    [
-      fileLoader({ root }),
-      esbuildTransform(),
-      createModuleToFunctionBodyTransform(),
-    ],
-    "serve"
-  );
+	const container = new PluginContainer(
+		[
+			fileLoader({ root }),
+			esbuildTransform(),
+			createModuleToFunctionBodyTransform(),
+		],
+		"serve",
+	);
 
-  const hattipHandler = compose([
-    createStaticServer({ root }),
-    createTransformMiddleware({ container }),
-    createAppHandler({ root, container }),
-  ]);
+	const hattipHandler = compose([
+		createStaticServer({ root }),
+		createTransformMiddleware({ container }),
+		createAppHandler({ root, container }),
+	]);
 
-  const listener = Deno.listen({ port });
-  console.log(`Listening on http://localhost:${port}`);
+	const listener = Deno.listen({ port });
+	console.log(`Listening on http://localhost:${port}`);
 
-  for await (const conn of listener) {
-    handleConnection(conn);
-  }
+	for await (const conn of listener) {
+		handleConnection(conn);
+	}
 
-  async function handleConnection(conn: Deno.Conn) {
-    const httpConn = Deno.serveHttp(conn);
-    for await (const requestEvent of httpConn) {
-      const { request, respondWith } = requestEvent;
-      const response = await handleRequest(request, conn);
-      respondWith(response);
-    }
-  }
+	async function handleConnection(conn: Deno.Conn) {
+		const httpConn = Deno.serveHttp(conn);
+		for await (const requestEvent of httpConn) {
+			const { request, respondWith } = requestEvent;
+			const response = await handleRequest(request, conn);
+			respondWith(response);
+		}
+	}
 
-  function handleRequest(request: Request, connection: Deno.Conn) {
-    const context: AdapterRequestContext = {
-      request,
-      ip: (connection.remoteAddr as Deno.NetAddr).hostname ?? "127.0.0.1",
-      waitUntil() {
-        // No op
-      },
-      passThrough() {
-        // No op
-      },
-      platform: { connection },
-    };
+	function handleRequest(request: Request, connection: Deno.Conn) {
+		const context: AdapterRequestContext = {
+			request,
+			ip: (connection.remoteAddr as Deno.NetAddr).hostname ?? "127.0.0.1",
+			waitUntil() {
+				// No op
+			},
+			passThrough() {
+				// No op
+			},
+			platform: { connection },
+		};
 
-    return hattipHandler(context);
-  }
+		return hattipHandler(context);
+	}
 }
