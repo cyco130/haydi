@@ -1,4 +1,11 @@
-import { remapping } from "../deps.ts";
+import { deferred, remapping } from "../deps.ts";
+import {
+	DYNAMIC_IMPORT_KEY,
+	EXPORT_ALL_KEY,
+	IMPORT_KEY,
+	IMPORT_META_KEY,
+	MODULE_EXPORTS_KEY,
+} from "./plugins/module-to-function-body.ts";
 import type {
 	HaydiPlugin,
 	LoadResult,
@@ -10,6 +17,8 @@ import type {
 export class PluginContainer {
 	#plugins: HaydiPlugin[];
 	#command: "build" | "serve";
+	#serverModules: Map<string, ServerModule> = new Map();
+	#pendingServerModules: Map<string, Promise<ServerModule>> = new Map();
 
 	constructor(plugins: HaydiPlugin[], command: "build" | "serve") {
 		this.#plugins = plugins.filter(
@@ -43,6 +52,10 @@ export class PluginContainer {
 					return result;
 				}
 			}
+		}
+
+		if (specifier[0] === "." && parent?.protocol === "file:") {
+			return { url: new URL(specifier, parent) };
 		}
 
 		return undefined;
@@ -122,6 +135,77 @@ export class PluginContainer {
 
 		return loaded;
 	}
+
+	async loadServerModule(url: URL) {
+		const urlCopy = new URL(url);
+		urlCopy.searchParams.delete("_v");
+		const key = urlCopy.toString();
+		const existing = this.#serverModules.get(key);
+		if (existing) {
+			return existing.evalResult;
+		}
+
+		if (this.#pendingServerModules.has(key)) {
+			return (await this.#pendingServerModules.get(key)!).evalResult;
+		}
+
+		const deferredModule = deferred<ServerModule>();
+		this.#pendingServerModules.set(key, deferredModule);
+
+		const loaded = await this.loadAndTransform(
+			new URL(key),
+			"application/javascript",
+			"server",
+		);
+
+		const fn = new AsyncFunction(
+			MODULE_EXPORTS_KEY,
+			IMPORT_KEY,
+			DYNAMIC_IMPORT_KEY,
+			EXPORT_ALL_KEY,
+			IMPORT_META_KEY,
+			`"use strict";` + loaded.code,
+		);
+
+		const exports: unknown = {};
+
+		await fn(exports, async (specifier: string) => {
+			const resolved = await this.resolve(
+				specifier,
+				new URL(key),
+				"server",
+			);
+
+			if (!resolved) {
+				throw new Error(`Could not resolve ${specifier} from ${key}`);
+			}
+
+			return this.loadServerModule(resolved.url);
+		});
+
+		const module: ServerModule = {
+			url: key,
+			files: new Set(),
+			version: 0,
+			loadResult: loaded,
+			evalResult: exports,
+		};
+
+		this.#serverModules.set(key, module);
+		this.#pendingServerModules.delete(key);
+		deferredModule.resolve(module);
+
+		return module.evalResult;
+	}
 }
 
-export interface ServerModule {}
+const AsyncFunction = Object.getPrototypeOf(async function () {})
+	.constructor as typeof Function;
+
+export interface ServerModule {
+	url: string;
+	files: Set<string>;
+	version: number;
+	loadResult: TransformResult;
+	evalResult: unknown;
+}

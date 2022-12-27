@@ -1,3 +1,7 @@
+export {
+	type Deferred,
+	deferred,
+} from "https://deno.land/std@0.170.0/async/deferred.ts";
 export { serveFile } from "https://deno.land/std@0.170.0/http/file_server.ts";
 export * as path from "https://deno.land/std@0.170.0/path/mod.ts";
 
