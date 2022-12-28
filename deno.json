@@ -1,5 +1,8 @@
 {
 	"fmt": {
+		"files": {
+			"exclude": ["playground/"]
+		},
 		"options": {
 			"useTabs": true
 		}

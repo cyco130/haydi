@@ -1,11 +1,14 @@
-import { AdapterRequestContext, compose } from "../deps.ts";
+import { AdapterRequestContext, compose, importMaps, path } from "../deps.ts";
 import { createAppHandler } from "./middleware/app-handler.ts";
 import { createStaticServer } from "./middleware/static.ts";
 import { createTransformMiddleware } from "./middleware/transform.ts";
 import { PluginContainer } from "./plugin-container.ts";
 import { esbuildTransform } from "./plugins/esbuild.ts";
 import { fileLoader } from "./plugins/file-loader.ts";
+import { importMapResolver } from "./plugins/import-map-resolver.ts";
 import { createModuleToFunctionBodyTransform } from "./plugins/module-to-function-body.ts";
+import { netLoader } from "./plugins/net-loader.ts";
+import { rewriteBareBrowserImports } from "./plugins/rewrite-bare-browser-imports.ts";
 
 startDevServer();
 
@@ -23,6 +26,16 @@ async function startDevServer(config: DevServerConfig = {}) {
 			fileLoader({ root }),
 			esbuildTransform(),
 			createModuleToFunctionBodyTransform(),
+			importMapResolver({
+				serverMap: await loadImportMap(
+					path.resolve(root, "import-map.server.json"),
+				),
+				browserMap: await loadImportMap(
+					path.resolve(root, "import-map.browser.json"),
+				),
+			}),
+			netLoader(),
+			rewriteBareBrowserImports(),
 		],
 		"serve",
 	);
@@ -63,5 +76,20 @@ async function startDevServer(config: DevServerConfig = {}) {
 		};
 
 		return hattipHandler(context);
+	}
+}
+
+async function loadImportMap(
+	name: string,
+): Promise<importMaps.ImportMap | undefined> {
+	try {
+		const file = await Deno.readTextFile(name);
+		return JSON.parse(file);
+	} catch (error) {
+		if (error instanceof Deno.errors.NotFound) {
+			return undefined;
+		}
+
+		throw error;
 	}
 }

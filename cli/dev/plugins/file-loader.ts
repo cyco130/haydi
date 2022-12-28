@@ -58,4 +58,6 @@ export function fileLoader(options: FileLoaderOptions): HaydiPlugin {
 const extentionToTypeMap: Record<string, string | undefined> = {
 	".js": "application/javascript",
 	".ts": "application/typescript",
+	".jsx": "text/jsx",
+	".tsx": "text/tsx",
 };

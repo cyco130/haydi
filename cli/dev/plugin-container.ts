@@ -43,6 +43,7 @@ export class PluginContainer {
 
 			if (plugin.resolve) {
 				const result = await plugin.resolve({
+					container: this,
 					specifier,
 					parent,
 					command: this.#command,
@@ -77,6 +78,7 @@ export class PluginContainer {
 
 			if (plugin.load) {
 				const result = await plugin.load({
+					container: this,
 					url,
 					type,
 					command: this.#command,
@@ -111,6 +113,7 @@ export class PluginContainer {
 
 			if (plugin.transform) {
 				const result = await plugin.transform({
+					container: this,
 					url,
 					type: loaded.type,
 					code: loaded.code,
@@ -167,9 +170,9 @@ export class PluginContainer {
 			`"use strict";` + loaded.code,
 		);
 
-		const exports: unknown = {};
+		let exports: unknown = {};
 
-		await fn(exports, async (specifier: string) => {
+		const importServerModule = async (specifier: string) => {
 			const resolved = await this.resolve(
 				specifier,
 				new URL(key),
@@ -181,12 +184,24 @@ export class PluginContainer {
 			}
 
 			return this.loadServerModule(resolved.url);
-		});
+		};
+
+		await fn(
+			// MODULE_EXPORTS
+			exports,
+			// IMPORT
+			importServerModule,
+			// DYNAMIC_IMPORT
+			importServerModule,
+			// EXPORT_ALL
+			(all: unknown) => {
+				exports = all;
+			},
+		);
 
 		const module: ServerModule = {
 			url: key,
 			files: new Set(),
-			version: 0,
 			loadResult: loaded,
 			evalResult: exports,
 		};
@@ -205,7 +220,6 @@ const AsyncFunction = Object.getPrototypeOf(async function () {})
 export interface ServerModule {
 	url: string;
 	files: Set<string>;
-	version: number;
 	loadResult: TransformResult;
 	evalResult: unknown;
 }

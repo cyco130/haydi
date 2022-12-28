@@ -1,3 +1,5 @@
+import { PluginContainer } from "./plugin-container.ts";
+
 export interface HaydiPlugin {
 	name: string;
 
@@ -14,6 +16,7 @@ export type Awaitable<T> = T | Promise<T>;
 export interface PluginContext {
 	command: "build" | "serve";
 	platform: "browser" | "server";
+	container: PluginContainer;
 }
 
 export interface ResolveContext extends PluginContext {

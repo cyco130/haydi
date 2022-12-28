@@ -11,9 +11,10 @@ export function createTransformMiddleware(
 	const { container } = options;
 
 	return async function transformMiddleware(ctx) {
+		const referer = ctx.request.headers.get("referer");
 		const resolved = await container.resolve(
-			ctx.url.pathname,
-			undefined,
+			"/src" + ctx.url.pathname,
+			referer ? new URL(referer) : undefined,
 			"browser",
 		);
 

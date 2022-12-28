@@ -9,7 +9,7 @@ export interface AppHandlerOptions {
 export function createAppHandler(options: AppHandlerOptions): RequestHandler {
 	return async function appHandler(ctx) {
 		let stat: Deno.FileInfo;
-		const serverModule = path.resolve(options.root, "server.ts");
+		const serverModule = path.resolve(options.root, "src/entry-server.ts");
 
 		try {
 			stat = await Deno.stat(serverModule);
@@ -31,7 +31,7 @@ export function createAppHandler(options: AppHandlerOptions): RequestHandler {
 
 		const { requestHandler } = module as { requestHandler?: RequestHandler };
 		if (typeof requestHandler !== "function") {
-			console.warn("No request handler exported from server.ts");
+			console.warn("No request handler exported from src/entry-server.ts");
 			return;
 		}
 

@@ -53,7 +53,7 @@ export function createModuleToFunctionBodyTransform(): HaydiPlugin {
 		name: "server-transform",
 
 		command: "serve",
-		// platform: "server",
+		platform: "server",
 
 		transform(ctx) {
 			const { code } = ctx;
