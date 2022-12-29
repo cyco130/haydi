@@ -25,6 +25,10 @@ export function createTransformMiddleware(
 				"browser",
 			);
 
+			if (!loaded) {
+				return;
+			}
+
 			let { code, map } = loaded;
 
 			if (map) {

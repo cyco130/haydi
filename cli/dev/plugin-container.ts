@@ -66,7 +66,7 @@ export class PluginContainer {
 		url: URL,
 		type: string | undefined,
 		platform: "browser" | "server",
-	): Promise<LoadResult> {
+	): Promise<LoadResult | undefined> {
 		for (const plugin of this.#plugins) {
 			if (
 				plugin.platform &&
@@ -84,21 +84,28 @@ export class PluginContainer {
 					command: this.#command,
 					platform,
 				});
+
 				if (result) {
 					return result;
 				}
 			}
 		}
-
-		throw new Error(`No loader found for ${url}`);
 	}
 
 	async loadAndTransform(
 		url: URL,
 		type: string | undefined,
 		platform: "browser" | "server",
-	): Promise<TransformResult> {
-		const loaded: TransformResult = await this.load(url, type, platform);
+	): Promise<TransformResult | undefined> {
+		const loaded: TransformResult | undefined = await this.load(
+			url,
+			type,
+			platform,
+		);
+
+		if (!loaded) {
+			return undefined;
+		}
 
 		const maps: SourceMap[] = [];
 
@@ -160,6 +167,10 @@ export class PluginContainer {
 			"application/javascript",
 			"server",
 		);
+
+		if (!loaded) {
+			throw new Error(`Could not load ${key}`);
+		}
 
 		const fn = new AsyncFunction(
 			MODULE_EXPORTS_KEY,
