@@ -194,6 +194,11 @@ export class PluginContainer {
 				throw new Error(`Could not resolve ${specifier} from ${key}`);
 			}
 
+			// TODO: Devise a better method to check if it's an external dependency
+			if (resolved.url.protocol !== "file:") {
+				return import(resolved.url.href);
+			}
+
 			return this.loadServerModule(resolved.url);
 		};
 
