@@ -19,6 +19,7 @@ export {
 } from "https://esm.sh/@hattip/compose@0.0.24";
 import * as acorn from "https://esm.sh/acorn@8.8.1";
 export { acorn };
+export * as lexer from "https://esm.sh/es-module-lexer@1.1.0";
 export * as estreeWalker from "https://esm.sh/estree-walker@3.0.1";
 export * as estree from "https://esm.sh/@types/estree@1.0.0/index.d.ts";
 export { default as MagicString } from "https://esm.sh/magic-string@0.27.0";

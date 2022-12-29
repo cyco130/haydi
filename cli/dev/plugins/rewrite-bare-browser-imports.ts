@@ -1,4 +1,4 @@
-import { acorn, estree, estreeWalker, MagicString } from "../../deps.ts";
+import { lexer, MagicString } from "../../deps.ts";
 import { HaydiPlugin } from "../types.ts";
 
 export function rewriteBareBrowserImports(): HaydiPlugin {
@@ -12,29 +12,21 @@ export function rewriteBareBrowserImports(): HaydiPlugin {
 				return;
 			}
 
-			const ast = acorn.parse(ctx.code, {
-				sourceType: "module",
-				ecmaVersion: "latest",
-				locations: true,
-				allowHashBang: true,
-			});
+			await lexer.init;
+			const [imports] = lexer.parse(ctx.code, ctx.url.pathname);
 
 			const ms = new MagicString(ctx.code);
-			const importDeclarations: (estree.ImportDeclaration)[] = [];
 
-			estreeWalker.walk(ast, {
-				enter(node: estree.BaseNode) {
-					if (node.type === "ImportDeclaration") {
-						importDeclarations.push(
-							node as estree.ImportDeclaration,
-						);
-					}
-				},
-			});
+			for (const decl of imports) {
+				if (!decl.n) {
+					console.warn(
+						`Cannot analyze import ${
+							ctx.code.slice(decl.s, decl.e)
+						} in ${ctx.url.href}`,
+					);
+				}
 
-			for (const decl of importDeclarations) {
-				const source = decl.source as typeof decl.source & Locatable;
-				const s = source.value as string;
+				const s = decl.n as string;
 				if (s[0] === "." || s[0] === "/") {
 					continue;
 				}
@@ -50,9 +42,9 @@ export function rewriteBareBrowserImports(): HaydiPlugin {
 				}
 
 				ms.overwrite(
-					source.start,
-					source.end,
-					JSON.stringify(resolved.url.href),
+					decl.s,
+					decl.e,
+					JSON.stringify(resolved.url.href).slice(1, -1),
 				);
 			}
 
